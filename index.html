@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map文件内存分析器</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Map文件内存分析器</h1>
+            <p>上传GCC或GHS编译器生成的map文件，分析各个模块的内存占用情况</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="file-upload">
+                <input type="file" id="mapFile" accept=".map,.txt" />
+                <label for="mapFile" class="upload-label">
+                    <span class="upload-icon">📁</span>
+                    <span class="upload-text">选择Map文件</span>
+                </label>
+            </div>
+
+            <div class="compiler-selection">
+                <label>编译器类型:</label>
+                <div class="radio-group">
+                    <input type="radio" id="gcc" name="compiler" value="gcc" checked>
+                    <label for="gcc">GCC</label>
+                    <input type="radio" id="ghs" name="compiler" value="ghs">
+                    <label for="ghs">GHS</label>
+                </div>
+            </div>
+
+            <div class="options">
+                <label>
+                    <input type="checkbox" id="ignoreDebug">
+                    忽略调试段 (.debug*)
+                </label>
+            </div>
+
+            <button id="analyzeBtn" class="analyze-btn" disabled>分析Map文件</button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>正在分析文件...</p>
+        </div>
+
+        <div id="results" class="results hidden">
+            <div class="results-header">
+                <h2>分析结果</h2>
+                <div class="export-buttons">
+                    <button id="exportCsv" class="export-btn">导出CSV</button>
+                    <button id="exportTxt" class="export-btn">导出TXT</button>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-item">
+                    <span class="label">总模块数:</span>
+                    <span id="totalModules" class="value">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">总内存占用:</span>
+                    <span id="totalMemory" class="value">-</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">段类型数:</span>
+                    <span id="totalSections" class="value">-</span>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="memoryChart"></canvas>
+            </div>
+
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>模块名</th>
+                            <th>总大小 (字节)</th>
+                            <th>总大小 (KB)</th>
+                            <th>占比</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="error" class="error hidden">
+            <h3>错误</h3>
+            <p id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
