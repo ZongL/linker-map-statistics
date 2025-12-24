@@ -116,7 +116,7 @@ def extract_relevant_lines(src_path):
 
 def main():
     base = os.path.dirname(__file__)
-    src = os.path.join(base, 'gcc_linkermap.map')
+    src = os.path.join(base, './examples/gcc_linkermap.map')
     csv_out = os.path.join(base, 'gcc_module_stats.csv')
     txt_out = os.path.join(base, 'gcc_module_stats.txt')
 

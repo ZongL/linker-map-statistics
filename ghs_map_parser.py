@@ -135,7 +135,7 @@ def write_text(path, results, sections, top_n=None):
 
 def main():
     base = os.path.dirname(__file__)
-    src = os.path.join(base, 'CORTEXM_S32G27X.txt')
+    src = os.path.join(base, './examples/CORTEXM_S32G27X.txt')
     tobemap = os.path.join(base, 'tobemap.txt')
     csv_out = os.path.join(base, 'ghs_module_stats.csv')
     txt_out = os.path.join(base, 'ghs_module_stats.txt')
