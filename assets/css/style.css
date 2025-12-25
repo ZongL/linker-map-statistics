@@ -474,3 +474,63 @@ tr:hover {
         padding: 15px 0;
     }
 }
+/* 段分配明细样式 */
+.memory-regions, .section-summary {
+    margin-bottom: 20px;
+}
+
+.memory-regions h4, .section-summary h4 {
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-left: 4px solid #28a745;
+}
+
+.section-summary h4 {
+    border-left-color: #17a2b8;
+}
+
+.section-summary p {
+    margin: 0 20px 15px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.section-summary-table {
+    padding: 0 20px 20px;
+}
+
+.section-summary-table table {
+    margin: 0;
+    box-shadow: none;
+}
+
+.section-summary-table th {
+    background: #f1f8ff;
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.section-summary-table code {
+    background: #f8f9fa;
+    padding: 4px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #e83e8c;
+    font-weight: 600;
+}
+
+.no-config {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.memory-config-table {
+    padding: 0 20px 20px;
+}

@@ -181,6 +181,7 @@ class MapAnalyzer {
         const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)(?:\s+(.+?))?[\r\n]*$/;
         const modules = {};
         const allSections = new Set();
+        const sectionSummary = {}; // 存储段总体信息
         let matchCount = 0;
         let validEntries = 0;
 
@@ -192,7 +193,7 @@ class MapAnalyzer {
 
             const section = match[1].trim();
             const sizeHex = match[2];
-            let moduleRaw = match[3] ? match[3].trim() : 'unknown';
+            let moduleRaw = match[3] ? match[3].trim() : null;
 
             // 忽略调试段
             if (ignoreDebug && section.startsWith('.debug')) {
@@ -212,18 +213,22 @@ class MapAnalyzer {
             }
 
             validEntries++;
+            allSections.add(section);
+
+            // 如果没有模块名，这是段的总体定义
+            if (!moduleRaw) {
+                sectionSummary[section] = size;
+                continue;
+            }
 
             // 规范化模块名
             let module = moduleRaw;
-            if (moduleRaw && moduleRaw !== 'unknown') {
-                if ((moduleRaw.includes('/') || moduleRaw.includes('\\')) && 
-                    !(moduleRaw.includes('(') && moduleRaw.includes(')'))) {
-                    const parts = moduleRaw.split(/[/\\]/);
-                    module = parts[parts.length - 1];
-                }
+            if ((moduleRaw.includes('/') || moduleRaw.includes('\\')) && 
+                !(moduleRaw.includes('(') && moduleRaw.includes(')'))) {
+                const parts = moduleRaw.split(/[/\\]/);
+                module = parts[parts.length - 1];
             }
 
-            allSections.add(section);
             if (!modules[module]) {
                 modules[module] = {};
             }
@@ -236,6 +241,10 @@ class MapAnalyzer {
         console.log(`总匹配行数: ${matchCount}, 有效条目: ${validEntries}`);
         console.log(`段类型数: ${allSections.size}`);
         console.log(`模块数: ${Object.keys(modules).length}`);
+        console.log(`段总体数: ${Object.keys(sectionSummary).length}`);
+
+        // 存储段总体信息
+        this.sectionSummary = sectionSummary;
 
         return this.processResults(modules, allSections);
     }
@@ -452,24 +461,30 @@ class MapAnalyzer {
             summaryDiv.parentNode.insertBefore(memoryConfigDiv, chartContainer);
         }
 
+        let configHtml = `
+            <div class="memory-config-header">
+                <h3>内存配置总览</h3>
+                <p>包含Memory Configuration和段分配明细信息</p>
+            </div>
+        `;
+
+        // 显示Memory Configuration
         if (this.memoryConfig && this.memoryConfig.length > 0) {
-            let configHtml = `
-                <div class="memory-config-header">
-                    <h3>内存配置总览</h3>
-                    <p>从Memory Configuration章节解析的内存区域信息</p>
-                </div>
-                <div class="memory-config-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>区域名称</th>
-                                <th>起始地址</th>
-                                <th>大小</th>
-                                <th>大小(KB)</th>
-                                <th>属性</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+            configHtml += `
+                <div class="memory-regions">
+                    <h4>内存区域配置</h4>
+                    <div class="memory-config-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>区域名称</th>
+                                    <th>起始地址</th>
+                                    <th>大小</th>
+                                    <th>大小(KB)</th>
+                                    <th>属性</th>
+                                </tr>
+                            </thead>
+                            <tbody>
             `;
 
             this.memoryConfig.forEach(config => {
@@ -488,20 +503,91 @@ class MapAnalyzer {
             });
 
             configHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            memoryConfigDiv.innerHTML = configHtml;
-        } else {
-            memoryConfigDiv.innerHTML = `
-                <div class="memory-config-header">
-                    <h3>内存配置总览</h3>
-                    <p class="no-config">未找到Memory Configuration章节信息</p>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
         }
+
+        // 显示段分配明细
+        if (this.sectionSummary && Object.keys(this.sectionSummary).length > 0) {
+            configHtml += `
+                <div class="section-summary">
+                    <h4>段分配明细</h4>
+                    <p>从Linker script and memory map章节解析的段总体分配情况</p>
+                    <div class="section-summary-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>段名称</th>
+                                    <th>总大小</th>
+                                    <th>大小(KB)</th>
+                                    <th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            // 按大小排序显示段信息
+            const sortedSections = Object.entries(this.sectionSummary)
+                .sort(([,a], [,b]) => b - a);
+
+            sortedSections.forEach(([section, size]) => {
+                const sizeKB = (size / 1024).toFixed(2);
+                const description = this.getSectionDescription(section);
+                
+                configHtml += `
+                    <tr>
+                        <td><code>${section}</code></td>
+                        <td>${this.formatBytes(size)}</td>
+                        <td>${sizeKB} KB</td>
+                        <td>${description}</td>
+                    </tr>
+                `;
+            });
+
+            configHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 如果两个部分都没有数据
+        if ((!this.memoryConfig || this.memoryConfig.length === 0) && 
+            (!this.sectionSummary || Object.keys(this.sectionSummary).length === 0)) {
+            configHtml += `
+                <div class="no-config">
+                    <p>未找到Memory Configuration或段分配信息</p>
+                </div>
+            `;
+        }
+
+        memoryConfigDiv.innerHTML = configHtml;
+    }
+
+    getSectionDescription(section) {
+        const descriptions = {
+            '.text': '代码段 - 存储程序指令',
+            '.rodata': '只读数据段 - 存储常量数据',
+            '.data': '已初始化数据段 - 存储已初始化的全局变量',
+            '.bss': '未初始化数据段 - 存储未初始化的全局变量',
+            '.isr_vector': '中断向量表 - 存储中断服务程序地址',
+            '.stack': '栈段 - 程序运行时栈空间',
+            '.heap': '堆段 - 动态内存分配空间',
+            '.comment': '注释段 - 编译器信息',
+            '.debug_info': '调试信息段',
+            '.debug_abbrev': '调试缩写段',
+            '.debug_line': '调试行号段',
+            '.debug_frame': '调试帧段',
+            '.debug_str': '调试字符串段',
+            '.debug_loc': '调试位置段',
+            '.debug_ranges': '调试范围段',
+            '.debug_aranges': '调试地址范围段'
+        };
+        return descriptions[section] || '其他段';
     }
 
     getAttributeDescription(attributes) {
