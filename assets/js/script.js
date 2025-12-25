@@ -103,8 +103,8 @@ class MapAnalyzer {
         // 1. .text 0x340001e0 0x30 c:/.../libgcc.a(_aeabi_uldivmod.o)
         // 2. .text          0x340001e0       0x30 c:/.../libgcc.a(_aeabi_uldivmod.o)
         // 3. .sram           0x34000000    0x75e20  (没有模块名的情况)
-        const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)\s+(.+)$/;
-
+        //const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)\s+(.+)$/;
+        const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)(?:\s+(.+?))?[\r\n]*$/;
         const modules = {};
         const allSections = new Set();
         let matchCount = 0;
