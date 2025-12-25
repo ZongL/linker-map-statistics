@@ -99,11 +99,149 @@ class MapAnalyzer {
 
     parseGccMap(content, ignoreDebug) {
         const lines = content.split('\n');
-        // 匹配多种格式:
-        // 1. .text 0x340001e0 0x30 c:/.../libgcc.a(_aeabi_uldivmod.o)
-        // 2. .text          0x340001e0       0x30 c:/.../libgcc.a(_aeabi_uldivmod.o)
-        // 3. .sram           0x34000000    0x75e20  (没有模块名的情况)
-        //const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)\s+(.+)$/;
+        
+        // 解析Memory Configuration章节
+        const memoryConfig = this.parseMemoryConfiguration(lines);
+        
+        // 解析Linker script and memory map章节
+        const moduleResults = this.parseLinkerScriptSection(lines, ignoreDebug);
+        
+        // 存储内存配置信息
+        this.memoryConfig = memoryConfig;
+        
+        return moduleResults;
+    }
+
+    parseMemoryConfiguration(lines) {
+        const memoryConfig = [];
+        let inMemorySection = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            if (line === 'Memory Configuration') {
+                inMemorySection = true;
+                continue;
+            }
+            
+            if (inMemorySection) {
+                if (line === 'Linker script and memory map' || line === '') {
+                    if (line === 'Linker script and memory map') break;
+                    continue;
+                }
+                
+                // 跳过表头
+                if (line.includes('Name') && line.includes('Origin') && line.includes('Length')) {
+                    continue;
+                }
+                
+                // 解析内存区域行: flash 0x0000000008000000 0x0000000000040000 r
+                const memPattern = /^(\w+)\s+0x([0-9A-Fa-f]+)\s+0x([0-9A-Fa-f]+)\s+(\w*)$/;
+                const match = memPattern.exec(line);
+                
+                if (match) {
+                    const name = match[1];
+                    const origin = parseInt(match[2], 16);
+                    const length = parseInt(match[3], 16);
+                    const attributes = match[4] || '';
+                    
+                    memoryConfig.push({
+                        name,
+                        origin,
+                        length,
+                        attributes,
+                        originHex: '0x' + match[2],
+                        lengthHex: '0x' + match[3]
+                    });
+                }
+            }
+        }
+        
+        return memoryConfig;
+    }
+
+    parseLinkerScriptSection(lines, ignoreDebug) {
+        // 找到"Linker script and memory map"章节开始位置
+        let startIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].trim() === 'Linker script and memory map') {
+                startIndex = i;
+                break;
+            }
+        }
+        
+        if (startIndex === -1) {
+            // 如果没找到该章节，使用原来的解析方式
+            return this.parseGccMapLegacy(lines, ignoreDebug);
+        }
+        
+        // 从该章节开始解析
+        const relevantLines = lines.slice(startIndex);
+        
+        const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)(?:\s+(.+?))?[\r\n]*$/;
+        const modules = {};
+        const allSections = new Set();
+        let matchCount = 0;
+        let validEntries = 0;
+
+        for (const line of relevantLines) {
+            const match = pattern.exec(line);
+            if (!match) continue;
+            
+            matchCount++;
+
+            const section = match[1].trim();
+            const sizeHex = match[2];
+            let moduleRaw = match[3] ? match[3].trim() : 'unknown';
+
+            // 忽略调试段
+            if (ignoreDebug && section.startsWith('.debug')) {
+                continue;
+            }
+
+            let size;
+            try {
+                size = parseInt(sizeHex, 16);
+            } catch (e) {
+                continue;
+            }
+
+            // 跳过大小为0的条目
+            if (size === 0) {
+                continue;
+            }
+
+            validEntries++;
+
+            // 规范化模块名
+            let module = moduleRaw;
+            if (moduleRaw && moduleRaw !== 'unknown') {
+                if ((moduleRaw.includes('/') || moduleRaw.includes('\\')) && 
+                    !(moduleRaw.includes('(') && moduleRaw.includes(')'))) {
+                    const parts = moduleRaw.split(/[/\\]/);
+                    module = parts[parts.length - 1];
+                }
+            }
+
+            allSections.add(section);
+            if (!modules[module]) {
+                modules[module] = {};
+            }
+            if (!modules[module][section]) {
+                modules[module][section] = 0;
+            }
+            modules[module][section] += size;
+        }
+
+        console.log(`总匹配行数: ${matchCount}, 有效条目: ${validEntries}`);
+        console.log(`段类型数: ${allSections.size}`);
+        console.log(`模块数: ${Object.keys(modules).length}`);
+
+        return this.processResults(modules, allSections);
+    }
+
+    parseGccMapLegacy(lines, ignoreDebug) {
+        // 原来的解析方式，作为后备方案
         const pattern = /^\s*([.\w*+-]+)\s+0x[0-9A-Fa-f]+\s+0x([0-9A-Fa-f]+)(?:\s+(.+?))?[\r\n]*$/;
         const modules = {};
         const allSections = new Set();
@@ -271,6 +409,9 @@ class MapAnalyzer {
         totalMemory.textContent = this.formatBytes(totalMem);
         totalSections.textContent = this.sections.length;
 
+        // 显示内存配置总览
+        this.displayMemoryConfiguration();
+
         // 清空表格
         tableBody.innerHTML = '';
 
@@ -295,6 +436,83 @@ class MapAnalyzer {
         this.createChart();
 
         resultsDiv.classList.remove('hidden');
+    }
+
+    displayMemoryConfiguration() {
+        // 查找或创建内存配置显示区域
+        let memoryConfigDiv = document.getElementById('memoryConfiguration');
+        if (!memoryConfigDiv) {
+            memoryConfigDiv = document.createElement('div');
+            memoryConfigDiv.id = 'memoryConfiguration';
+            memoryConfigDiv.className = 'memory-configuration';
+            
+            // 插入到摘要和图表之间
+            const summaryDiv = document.querySelector('.summary');
+            const chartContainer = document.querySelector('.chart-container');
+            summaryDiv.parentNode.insertBefore(memoryConfigDiv, chartContainer);
+        }
+
+        if (this.memoryConfig && this.memoryConfig.length > 0) {
+            let configHtml = `
+                <div class="memory-config-header">
+                    <h3>内存配置总览</h3>
+                    <p>从Memory Configuration章节解析的内存区域信息</p>
+                </div>
+                <div class="memory-config-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>区域名称</th>
+                                <th>起始地址</th>
+                                <th>大小</th>
+                                <th>大小(KB)</th>
+                                <th>属性</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            this.memoryConfig.forEach(config => {
+                const sizeKB = (config.length / 1024).toFixed(2);
+                const attributeDesc = this.getAttributeDescription(config.attributes);
+                
+                configHtml += `
+                    <tr>
+                        <td><strong>${config.name}</strong></td>
+                        <td><code>${config.originHex}</code></td>
+                        <td>${this.formatBytes(config.length)}</td>
+                        <td>${sizeKB} KB</td>
+                        <td title="${attributeDesc}">${config.attributes}</td>
+                    </tr>
+                `;
+            });
+
+            configHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            memoryConfigDiv.innerHTML = configHtml;
+        } else {
+            memoryConfigDiv.innerHTML = `
+                <div class="memory-config-header">
+                    <h3>内存配置总览</h3>
+                    <p class="no-config">未找到Memory Configuration章节信息</p>
+                </div>
+            `;
+        }
+    }
+
+    getAttributeDescription(attributes) {
+        const descriptions = {
+            'r': '只读 (Read-only)',
+            'rw': '读写 (Read-Write)', 
+            'x': '可执行 (Executable)',
+            'rx': '只读可执行 (Read-Execute)',
+            'rwx': '读写执行 (Read-Write-Execute)'
+        };
+        return descriptions[attributes] || attributes;
     }
 
     createChart() {

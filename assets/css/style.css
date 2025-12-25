@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: rgb(253, 255, 253);
     min-height: 100vh;
     padding: 20px;
 }
@@ -15,9 +15,6 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    overflow: hidden;
 }
 
 header {
@@ -57,7 +54,6 @@ header p {
     justify-content: center;
     padding: 30px;
     border: 3px dashed #ddd;
-    border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
@@ -131,7 +127,6 @@ header p {
     border: none;
     padding: 15px 40px;
     font-size: 1.1rem;
-    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
@@ -198,7 +193,6 @@ header p {
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
     transition: background 0.3s ease;
@@ -218,7 +212,6 @@ header p {
 .summary-item {
     background: #f8f9fa;
     padding: 20px;
-    border-radius: 8px;
     text-align: center;
 }
 
@@ -240,14 +233,12 @@ header p {
     margin-bottom: 40px;
     height: 400px;
     background: white;
-    border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .table-container {
     overflow-x: auto;
-    border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
@@ -280,7 +271,6 @@ tr:hover {
     color: white;
     border: none;
     padding: 5px 12px;
-    border-radius: 4px;
     cursor: pointer;
     font-size: 0.8rem;
 }
@@ -319,7 +309,6 @@ tr:hover {
     background-color: white;
     margin: 5% auto;
     padding: 30px;
-    border-radius: 12px;
     width: 80%;
     max-width: 600px;
     max-height: 80vh;
@@ -356,7 +345,6 @@ tr:hover {
 @media (max-width: 768px) {
     .container {
         margin: 10px;
-        border-radius: 8px;
     }
     
     header {
@@ -384,5 +372,105 @@ tr:hover {
     
     .summary {
         grid-template-columns: 1fr;
+    }
+}
+/* 内存配置总览样式 */
+.memory-configuration {
+    margin-bottom: 40px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.memory-config-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 20px 30px;
+}
+
+.memory-config-header h3 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin-bottom: 5px;
+}
+
+.memory-config-header p {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.memory-config-header .no-config {
+    color: #ffc107;
+    font-style: italic;
+}
+
+.memory-config-table {
+    padding: 0;
+}
+
+.memory-config-table table {
+    margin: 0;
+    box-shadow: none;
+}
+
+.memory-config-table th {
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.memory-config-table td {
+    vertical-align: middle;
+}
+
+.memory-config-table code {
+    background: #f8f9fa;
+    padding: 4px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.memory-config-table strong {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* 模块详情部分样式 */
+.modules-section {
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-top: 2px solid #eee;
+}
+
+.modules-section h3 {
+    color: #333;
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin-bottom: 5px;
+}
+
+.modules-section p {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .memory-config-header {
+        padding: 15px 20px;
+    }
+    
+    .memory-config-header h3 {
+        font-size: 1.3rem;
+    }
+    
+    .memory-config-table {
+        overflow-x: auto;
+    }
+    
+    .modules-section {
+        padding: 15px 0;
     }
 }
